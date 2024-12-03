@@ -33,6 +33,19 @@ public class Day03 : BaseDay<string>
             }
         }
         
+        // Shoehorn in a switch expression
+        // foreach (Match match in Part2Regex.Matches(input))
+        // {
+        //     result += match switch
+        //     {
+        //         { Groups: var g } when g[1].Success && enabled => 
+        //             long.Parse(g[1].Value) * long.Parse(g[2].Value),
+        //         { Groups: var g } when g[3].Success => 
+        //             (enabled = g[3].Value == "do()", 0).Item2,
+        //         _ => 0
+        //     };
+        // }
+        
         return result;
     }
 }
