@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 using AdventOfCode.Solutions.Common;
 
 namespace AdventOfCode.Solutions.Year2024
@@ -63,7 +61,38 @@ namespace AdventOfCode.Solutions.Year2024
         
         protected override object Solve2(List<long> input)
         {
-            return "not implemented";
+            long result = 0;
+            foreach (var stone in input)
+            {
+                result += CountStonesAfterNBlinks(stone, 75);
+            }
+            return result;
+        }
+        
+        private Dictionary<(long stone, int steps), long> memo = new();
+        
+        private long CountStonesAfterNBlinks(long stone, int n)
+        {
+            // Base case - no more blinks left
+            if (n == 0)
+                return 1;
+            
+            var key = (stone, n);
+            // CHeck if we've seen the stone + blinks remaining combo before (neat syntax)
+            if (memo.TryGetValue(key, out long cached))
+                return cached;
+
+            // If not apply the rules like before
+            var nextStones = ProcessStone(stone);
+            long count = 0;
+            foreach (var nextStone in nextStones)
+            {
+                count += CountStonesAfterNBlinks(nextStone, n - 1);
+            }
+
+            // Add this combo to the cache
+            memo[key] = count;
+            return count;
         }
     }
 }
