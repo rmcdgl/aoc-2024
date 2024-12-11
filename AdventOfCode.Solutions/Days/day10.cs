@@ -66,19 +66,51 @@ public class Day10 : BaseDay<int[][]>
 
         return reachableNines;
     }
+
+    private int CountPaths(int[][] grid, Position pos, HashSet<Position> visited)
+    {
+        int height = grid.Length;
+        int width = grid[0].Length;
+        if (!IsInBounds(pos.Row, pos.Col, height, width ) || visited.Contains(pos))
+            return 0;
+
+        int currentHeight = grid[pos.Row][pos.Col];
+        
+        if (currentHeight == 9)
+            return 1;
+
+        visited.Add(pos);
+        int paths = 0;
+
+        foreach (var (dRow, dCol) in Directions)
+        {
+            var newPos = new Position(pos.Row + dRow, pos.Col + dCol);
+            
+            if (!IsInBounds( newPos.Row, newPos.Col, height, width ))
+                continue;
+
+            var newHeight = grid[newPos.Row][newPos.Col];
+            if (newHeight == currentHeight + 1)
+            {
+                paths += CountPaths(grid, newPos, visited);
+            }
+        }
+
+        visited.Remove(pos);
+        return paths;
+    }
     
-    protected override object Solve1(int[][] input)
+    protected override object Solve1(int[][] grid)
     {
         var totalScore = 0;
         
-        // Find all trailheads (positions with height 0)
-        for (int row = 0; row < input.Length; row++)
+        for (int row = 0; row < grid.Length; row++)
         {
-            for (int col = 0; col < input[0].Length; col++)
+            for (int col = 0; col < grid[0].Length; col++)
             {
-                if (input[row][col] == 0)
+                if (grid[row][col] == 0)
                 {
-                    var reachableNines = FindReachableNines(input, new Position(row, col));
+                    var reachableNines = FindReachableNines(grid, new Position(row, col));
                     totalScore += reachableNines.Count;
                 }
             }
@@ -87,8 +119,23 @@ public class Day10 : BaseDay<int[][]>
         return totalScore;
     }
     
-    protected override object Solve2(int[][] input)
+    protected override object Solve2(int[][] grid)
     {
-        return "not implemented";
+        var totalRating = 0;
+        
+        for (int row = 0; row < grid.Length; row++)
+        {
+            for (int col = 0; col < grid[0].Length; col++)
+            {
+                if (grid[row][col] == 0)
+                {
+                    var visited = new HashSet<Position>();
+                    var paths = CountPaths(grid, new Position(row, col), visited);
+                    totalRating += paths;
+                }
+            }
+        }
+
+        return totalRating;
     }
 }
