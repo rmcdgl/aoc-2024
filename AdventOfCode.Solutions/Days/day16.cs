@@ -63,16 +63,12 @@ public class Day16 : BaseDay<char[][]>
         };
     }
 
-    private int FindShortestPath(char[][] grid)
+    private int FindShortestPath(char[][] grid, (int row, int col) start, (int row, int col) end, Direction initialDir)
     {
-        var start = FindPosition(grid, 'S');
-        var end = FindPosition(grid, 'E');
-
         var distances = new Dictionary<State, int>();
         var queue = new PriorityQueue<State, int>();
         
-        // Start facing East
-        var initialState = new State(start.row, start.col, Direction.East);
+        var initialState = new State(start.row, start.col, initialDir);
         distances[initialState] = 0;
         queue.Enqueue(initialState, 0);
 
@@ -110,13 +106,130 @@ public class Day16 : BaseDay<char[][]>
         throw new Exception("No path found");
     }
     
+    private record struct PathInfo
+    {
+        public Dictionary<State, int> Distances { get; init; }
+        public Dictionary<State, HashSet<State>> Predecessors { get; init; }
+        public int MinEndCost { get; init; }
+    }
+
+    private PathInfo FindAllOptimalPaths(char[][] grid, (int row, int col) start, (int row, int col) end, Direction initialDir)
+    {
+        var distances = new Dictionary<State, int>();
+        var predecessors = new Dictionary<State, HashSet<State>>();
+        var queue = new PriorityQueue<State, int>();
+        
+        var initialState = new State(start.row, start.col, initialDir);
+        distances[initialState] = 0;
+        predecessors[initialState] = new HashSet<State>();
+        queue.Enqueue(initialState, 0);
+
+        int? minEndCost = null;
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            var currentCost = distances[current];
+
+            if (current.Row == end.row && current.Col == end.col)
+            {
+                if (minEndCost == null || currentCost == minEndCost)
+                {
+                    minEndCost = currentCost;
+                }
+                continue;
+            }
+
+            if (minEndCost.HasValue && currentCost > minEndCost.Value)
+                continue;
+
+            foreach (var nextDir in GetNextDirections(current.Dir))
+            {
+                var turnCost = nextDir == current.Dir ? 0 : 1000;
+                var (dRow, dCol) = Moves[nextDir];
+                var newRow = current.Row + dRow;
+                var newCol = current.Col + dCol;
+
+                if (!IsInBounds(grid, newRow, newCol))
+                    continue;
+
+                var nextState = new State(newRow, newCol, nextDir);
+                var newCost = currentCost + turnCost + 1;
+
+                if (!distances.ContainsKey(nextState))
+                {
+                    distances[nextState] = newCost;
+                    predecessors[nextState] = new HashSet<State> { current };
+                    queue.Enqueue(nextState, newCost);
+                }
+                else if (newCost == distances[nextState])
+                {
+                    predecessors[nextState].Add(current);
+                }
+                else if (newCost < distances[nextState])
+                {
+                    distances[nextState] = newCost;
+                    predecessors[nextState] = new HashSet<State> { current };
+                    queue.Enqueue(nextState, newCost);
+                }
+            }
+        }
+
+        if (!minEndCost.HasValue)
+            throw new Exception("No path found");
+
+        return new PathInfo
+        {
+            Distances = distances,
+            Predecessors = predecessors,
+            MinEndCost = minEndCost.Value
+        };
+    }
+
+    private HashSet<(int row, int col)> GetOptimalPathTiles(PathInfo pathInfo, (int row, int col) start, (int row, int col) end)
+    {
+        var optimalTiles = new HashSet<(int row, int col)>();
+
+        // Find all end states that have the optimal cost
+        var optimalEndStates = pathInfo.Distances
+            .Where(kvp => kvp.Key.Row == end.row && kvp.Key.Col == end.col && kvp.Value == pathInfo.MinEndCost)
+            .Select(kvp => kvp.Key);
+
+        foreach (var endState in optimalEndStates)
+        {
+            var stack = new Stack<State>();
+            stack.Push(endState);
+            optimalTiles.Add((endState.Row, endState.Col));
+
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                if (pathInfo.Predecessors.TryGetValue(current, out var predecessors))
+                {
+                    foreach (var pred in predecessors)
+                    {
+                        optimalTiles.Add((pred.Row, pred.Col));
+                        stack.Push(pred);
+                    }
+                }
+            }
+        }
+
+        return optimalTiles;
+    }
+    
     protected override object Solve1(char[][] grid)
     {
-        return FindShortestPath(grid);
+        var start = FindPosition(grid, 'S');
+        var end = FindPosition(grid, 'E');
+        return FindShortestPath(grid, start, end, Direction.East);
     }
     
     protected override object Solve2(char[][] grid)
     {
-        return "not implemented";
+        var start = FindPosition(grid, 'S');
+        var end = FindPosition(grid, 'E');
+        var pathInfo = FindAllOptimalPaths(grid, start, end, Direction.East);
+        return GetOptimalPathTiles(pathInfo, start, end).Count;
     }
 }
