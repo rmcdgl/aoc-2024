@@ -94,6 +94,25 @@ public class Day18 : BaseDay<List<(int Row, int Col)>>
 
     protected override object Solve2(List<(int Row, int Col)> input)
     {
-        return "not implemented";
+        var grid = new char[GridSize, GridSize];
+        
+        for (int row = 0; row < GridSize; row++)
+        for (int col = 0; col < GridSize; col++)
+            grid[row, col] = '.';
+        
+        // Add bytes one at a time until path is blocked
+        for (int i = 0; i < input.Count; i++)
+        {
+            var (row, col) = input[i];
+            grid[row, col] = '#';
+            
+            // Check if path exists again
+            if (FindShortestPath(grid) == -1)
+            {
+                return $"{col},{row}";
+            }
+        }
+        
+        return "No blocking byte found";
     }
 }
